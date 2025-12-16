@@ -4456,10 +4456,10 @@ class SQLQuerySuite extends QueryTest with SharedSparkSession with AdaptiveSpark
         sql("create table t(i int, j int) using parquet")
         sql("insert into t values(2147483647, 10)")
         Seq(
-          "select i + j from t",
-          "select -i - j from t",
-          "select i * j from t",
-          "select i / (j - 10) from t").foreach { query =>
+          "select try_add(i, j) from t",
+          "select try_subtract(i, j) from t",
+          "select try_multiply(i, j) from t",
+          "select try_divide(i, j - 10) from t").foreach { query =>
           val msg = intercept[SparkArithmeticException] {
             sql(query).collect()
           }.getMessage
@@ -4477,13 +4477,13 @@ class SQLQuerySuite extends QueryTest with SharedSparkSession with AdaptiveSpark
         sql("create table t(s string) using parquet")
         sql("insert into t values('a')")
         Seq(
-          "select cast(s as int) from t",
-          "select cast(s as long) from t",
-          "select cast(s as double) from t",
-          "select cast(s as decimal(10, 2)) from t",
-          "select cast(s as date) from t",
-          "select cast(s as timestamp) from t",
-          "select cast(s as boolean) from t").foreach { query =>
+          "select try_cast(s as int) from t",
+          "select try_cast(s as long) from t",
+          "select try_cast(s as double) from t",
+          "select try_cast(s as decimal(10, 2)) from t",
+          "select try_cast(s as date) from t",
+          "select try_cast(s as timestamp) from t",
+          "select try_cast(s as boolean) from t").foreach { query =>
           val ex = intercept[Exception] {
             sql(query).collect()
           }
@@ -4504,9 +4504,9 @@ class SQLQuerySuite extends QueryTest with SharedSparkSession with AdaptiveSpark
         sql("create table t(d decimal(38, 0)) using parquet")
         sql("insert into t values (6e37BD),(6e37BD)")
         Seq(
-          "select d / 0.1 from t",
-          "select sum(d) from t",
-          "select avg(d) from t").foreach { query =>
+          "select try_divide(d, 0.1) from t",
+          "select try_sum(d) from t",
+          "select try_avg(d) from t").foreach { query =>
           val msg = intercept[SparkArithmeticException] {
             sql(query).collect()
           }.getMessage
@@ -4639,7 +4639,7 @@ class SQLQuerySuite extends QueryTest with SharedSparkSession with AdaptiveSpark
       withTable("dt") {
         sql("create table dt using parquet as select 9000000000BD as d")
         val msg = intercept[SparkArithmeticException] {
-          sql("select cast(cast(d as int) as long) from dt").collect()
+          sql("select cast(try_cast(d as int) as long) from dt").collect()
         }.getMessage
         assert(msg.contains("[CAST_OVERFLOW]"))
       }
